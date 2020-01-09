@@ -7,12 +7,12 @@ export interface Package {
 	created: Date
 	modified: Date
 	name: string
-	description?: string
+	description: null | string
 	resource: URIComponents
 	value: URIComponents
 	extent: number
-	revisionOf?: URIComponents
-	keywords?: string[]
+	revisionOf: null | URIComponents
+	keywords: null | string[]
 	members: Member[]
 }
 
@@ -24,22 +24,25 @@ interface member {
 
 export interface MessageMember extends member {
 	type: ResourceType.Message
-	resource?: URIComponents
 	value: URIComponents
+	resource: null | URIComponents
+	title: null | string
 }
 
 export interface FileMember extends member {
 	type: ResourceType.File
-	resource?: URIComponents
 	value: URIComponents
 	format: string
 	extent: number
+	resource: null | URIComponents
+	title: null | string
 }
 
 export interface PackageMember extends member {
 	type: ResourceType.Package
-	resource: URIComponents
 	value: URIComponents
+	resource: URIComponents
+	title: string
 }
 
 export enum ResourceType {

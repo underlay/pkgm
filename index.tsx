@@ -2,19 +2,24 @@ import * as React from "react"
 import * as ReactDOM from "react-dom"
 import { parseDataset, validatePackage } from "./src/parse"
 import { PackageSchema, Package } from "./src/package"
-import { PackageView } from "./src"
+import { PackageView, parseLinkHeader } from "./src"
+import { URIComponents, parse as parseURI } from "uri-js"
 
 const main = document.querySelector("main")
 
 interface IndexState {
 	path: string
 	p: Package
+	uri: URIComponents
 }
+
+const etag = /^\"([a-z1-7]{59})\"$/
+const scheme = "u"
 
 class Index extends React.Component<{}, IndexState> {
 	constructor(props: {}) {
 		super(props)
-		this.state = { path: "/", p: null }
+		this.state = { path: "/", p: null, uri: null }
 	}
 
 	async componentDidMount() {
@@ -26,19 +31,26 @@ class Index extends React.Component<{}, IndexState> {
 			},
 		})
 		console.log(res.headers)
-		const store = await res.text().then(parseDataset)
-		const packages = validatePackage(await PackageSchema, store)
-		if (packages.has("_:c14n0")) {
-			const p = packages.get("_:c14n0")
+
+		const match = etag.exec(res.headers.get("ETag"))
+		const links = parseLinkHeader(res.headers.get("Link"))
+		if (match !== null && links.has("self")) {
+			const [{ fragment }] = links.get("self")
+			const uri: URIComponents = { scheme, path: match[1], fragment }
+			const store = await res.text().then(text => {
+				console.log(text)
+				return parseDataset(text)
+			})
+			const p = validatePackage(await PackageSchema, store, fragment)
 			console.log(p)
-			this.setState({ p })
+			this.setState({ p, uri })
 		}
 	}
 
 	render() {
-		const { path, p } = this.state
-		if (p !== null) {
-			return <PackageView p={p} />
+		const { path, p, uri } = this.state
+		if (p) {
+			return <PackageView p={p} uri={uri} />
 		} else {
 			return <p>Loading...</p>
 		}

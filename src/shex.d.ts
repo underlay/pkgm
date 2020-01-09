@@ -50,36 +50,44 @@ declare module "@shex/core" {
 		solution: T
 	}
 
-	interface EachOfSolutions<T, R> {
+	interface EachOfSolutions<E> {
 		type: "EachOfSolutions"
 		solutions: {
 			type: "EachOfSolution"
-			expressions: Expression<T, R>[]
+			expressions: E[]
 		}[]
 	}
 
-	interface Expression<T, R> {
-		type: string
+	interface TripleConstraintSolutions<T, V> {
+		type: "TripleConstraintSolutions"
 		predicate: string
-		solutions: Solution<T, R>[]
-		valueExpr?: string
+		solutions: T[]
+		valueExpr?: V
 	}
 
 	interface Literal {
 		value: string
-		type: string
+		type?: string
 	}
 
-	interface Solution<T, R> {
+	interface TestedTriple<T, R> {
+		type: "TestedTriple"
 		subject: string
 		predicate: string
 		object: T
-		referenced?: ShapeAndResults<R>
+		referenced?: R
 	}
 
 	interface NodeTest {
 		type: "NodeTest"
 		node: string
 		shape: string
+	}
+
+	interface NodeConstraint {
+		type: "NodeConstraint"
+		nodeKind?: string
+		datatype?: string
+		pattern?: string
 	}
 }
