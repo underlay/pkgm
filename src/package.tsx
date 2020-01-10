@@ -20,18 +20,17 @@ export type Member = PackageMember | MessageMember | FileMember
 
 interface member {
 	type: ResourceType
+	value: URIComponents
 }
 
 export interface MessageMember extends member {
 	type: ResourceType.Message
-	value: URIComponents
 	resource: null | URIComponents
 	title: null | string
 }
 
 export interface FileMember extends member {
 	type: ResourceType.File
-	value: URIComponents
 	format: string
 	extent: number
 	resource: null | URIComponents
@@ -40,7 +39,6 @@ export interface FileMember extends member {
 
 export interface PackageMember extends member {
 	type: ResourceType.Package
-	value: URIComponents
 	resource: URIComponents
 	title: string
 }

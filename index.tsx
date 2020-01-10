@@ -49,11 +49,11 @@ class Index extends React.Component<{}, IndexState> {
 
 	render() {
 		const { path, p, uri } = this.state
-		if (p) {
-			return <PackageView p={p} uri={uri} />
-		} else {
-			return <p>Loading...</p>
-		}
+		return (
+			<section className="package">
+				{p !== null ? <PackageView p={p} uri={uri} /> : <p>Loading...</p>}
+			</section>
+		)
 	}
 }
 

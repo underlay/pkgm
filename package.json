@@ -28,6 +28,7 @@
 		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
+		"@blueprintjs/core": "^3.22.3",
 		"@shex/core": "file:shex.js/packages/shex-core",
 		"@shex/parser": "file:shex.js/packages/shex-parser",
 		"@types/react": "^16.9.17",
