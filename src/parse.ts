@@ -1,4 +1,4 @@
-import * as N3 from "n3"
+import { Store, StreamParser } from "n3"
 import { parse as parseURI } from "uri-js"
 
 import * as ShExParser from "@shex/parser"
@@ -14,6 +14,7 @@ import {
 } from "./package"
 
 // Types for dayys
+type UriOrLiteral = ShExCore.Literal | string
 type LiteralExpression = ShExCore.TripleConstraintSolutions<
 	ShExCore.TestedTriple<ShExCore.Literal, undefined>,
 	undefined
@@ -26,27 +27,8 @@ type UriOrLiteralExpession = ShExCore.TripleConstraintSolutions<
 	ShExCore.TestedTriple<UriOrLiteral, undefined>,
 	ShExCore.NodeConstraint
 >
-type UriOrLiteral = ShExCore.Literal | string
-type PackageResult = ShExCore.ShapeTest<
-	ShExCore.EachOfSolutions<
-		ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<UriOrLiteral, undefined>,
-			string
-		>
-	>
->
-type ValueTypeR = ShExCore.ShapeAndResults<LiteralExpression>
-type TripleOrEach = ShExCore.EachOfSolutions<
+type LiteralOrEachOfSolutions = ShExCore.EachOfSolutions<
 	LiteralExpression | ShExCore.EachOfSolutions<UriOrLiteralExpession>
->
-type FileTypeR = ShExCore.ShapeAndResults<TripleOrEach>
-type MessageTypeR = ShExCore.ShapeAndResults<
-	ShExCore.EachOfSolutions<
-		ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<ShExCore.Literal | string, undefined>,
-			ShExCore.NodeConstraint
-		>
-	>
 >
 
 const membershipResource = "http://www.w3.org/ns/ldp#membershipResource"
@@ -61,9 +43,9 @@ const dctermsExtent = "http://purl.org/dc/terms/extent"
 const dctermsCreated = "http://purl.org/dc/terms/created"
 const dctermsModified = "http://purl.org/dc/terms/modified"
 
-export function parseDataset(quads: string): Promise<N3.Store> {
-	const store = new N3.Store()
-	const n3Parser = new N3.StreamParser({
+export function parseDataset(quads: string): Promise<Store> {
+	const store = new Store()
+	const n3Parser = new StreamParser({
 		format: "application/n-quads",
 		blankNodePrefix: "_:",
 	})
@@ -78,14 +60,13 @@ export function parseDataset(quads: string): Promise<N3.Store> {
 
 export function validatePackage(
 	schema: ShExParser.Schema,
-	store: N3.Store,
+	store: Store,
 	fragment: string
 ): Package {
 	const db = ShExCore.Util.makeN3DB(store)
 	const validator = ShExCore.Validator.construct(schema)
 
 	const result = validator.validate(db, fragment, schema.start)
-	console.log(result)
 	if (result.type === "ShapeAndResults") {
 		const {
 			solution: {
@@ -93,7 +74,14 @@ export function validatePackage(
 			},
 		} = result.solutions.find(
 			({ type }) => type === "ShapeTest"
-		) as PackageResult
+		) as ShExCore.ShapeTest<
+			ShExCore.EachOfSolutions<
+				ShExCore.TripleConstraintSolutions<
+					ShExCore.TestedTriple<UriOrLiteral, undefined>,
+					string
+				>
+			>
+		>
 
 		// Find the membership resource
 		const {
@@ -164,7 +152,7 @@ export function validatePackage(
 		) as UriExpression
 		const revisionOf =
 			revisionSolutions.length === 1
-				? parseURI(revisionSolutions[1].object)
+				? parseURI(revisionSolutions[0].object)
 				: null
 
 		// Get the directory value
@@ -179,7 +167,10 @@ export function validatePackage(
 			({ type, predicate }) =>
 				type === "TripleConstraintSolutions" && predicate === provValue
 		) as ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<string, ValueTypeR>,
+			ShExCore.TestedTriple<
+				string,
+				ShExCore.ShapeAndResults<LiteralExpression>
+			>,
 			undefined
 		>
 		const {
@@ -253,7 +244,12 @@ export function validatePackage(
 				predicate === hadMember &&
 				valueExpr === "_:m"
 		) as ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<string, MessageTypeR>,
+			ShExCore.TestedTriple<
+				string,
+				ShExCore.ShapeAndResults<
+					ShExCore.EachOfSolutions<UriOrLiteralExpession>
+				>
+			>,
 			string
 		>
 
@@ -304,7 +300,10 @@ export function validatePackage(
 				predicate === hadMember &&
 				valueExpr === "_:f"
 		) as ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<string, FileTypeR>,
+			ShExCore.TestedTriple<
+				string,
+				ShExCore.ShapeAndResults<LiteralOrEachOfSolutions>
+			>,
 			string
 		>
 
@@ -318,7 +317,7 @@ export function validatePackage(
 				},
 			} = solutions.find(
 				({ type }) => type === "ShapeTest"
-			) as ShExCore.ShapeTest<TripleOrEach>
+			) as ShExCore.ShapeTest<LiteralOrEachOfSolutions>
 
 			// Get file extent
 			const {
@@ -398,5 +397,7 @@ export function validatePackage(
 			revisionOf,
 			members: members,
 		}
+	} else {
+		return null
 	}
 }
