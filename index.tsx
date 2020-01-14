@@ -1,7 +1,5 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { parseDataset, validatePackage } from "./src/parse"
-import { PackageSchema, Package } from "./src/package"
 import { PackageView } from "./src"
 
 const main = document.querySelector("main")
@@ -20,17 +18,12 @@ class Index extends React.Component<{}, IndexState> {
 
 	async componentDidMount() {
 		addEventListener("hashchange", () => {})
-		const url = origin + this.state.path
 	}
 
 	render() {
 		const { path } = this.state
 		const url = origin + path
-		return (
-			<section className="package">
-				<PackageView url={url} />
-			</section>
-		)
+		return <PackageView url={url} />
 	}
 }
 

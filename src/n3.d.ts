@@ -40,7 +40,35 @@ declare module "n3" {
 	export class Store {
 		addQuad(quad: Quad): void
 		forSubjects(callback: (subject: Node) => void): void
-		getQuads(subject: Node, predicate: Node, object: Node, graph: Node): Quad[]
+		forEach(
+			callback: (quad: Quad) => void,
+			subject?: Node,
+			predicate?: Node,
+			object?: Node,
+			graph?: Node
+		): void
+
+		some(
+			callback: (quad: Quad) => void,
+			subject?: Node,
+			predicate?: Node,
+			object?: Node,
+			graph?: Node
+		): boolean
+
+		countQuads(
+			subject?: Node,
+			predicate?: Node,
+			object?: Node,
+			graph?: Node
+		): number
+
+		getQuads(
+			subject?: Node,
+			predicate?: Node,
+			object?: Node,
+			graph?: Node
+		): Quad[]
 	}
 
 	export class StreamParser {

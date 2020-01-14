@@ -27,17 +27,27 @@
 				background-color: white;
 			}
 
-			section.package {
+			main.package {
 				width: min-content;
 				margin: 2em auto;
+				min-width: 600px;
 			}
 
-			section.package header {
+			main.package header {
 				padding: 1em 10px;
 			}
 
-			.package td:last-child {
+			main.package td:last-child {
 				text-align: right;
+			}
+
+			td.label {
+				width: max-content;
+			}
+
+			main.package td button.edit {
+				margin: -3px;
+				height: 24px;
 			}
 
 			td a[role="button"] {
@@ -49,9 +59,13 @@
 				margin: 0;
 				padding: 1px 0;
 			}
+
+			main.package section {
+				padding: 1em 10px;
+			}
 		</style>
 	</head>
 	<body>
-		<main></main>
+		<main class="package"></main>
 	</body>
 </html>

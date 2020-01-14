@@ -12,6 +12,7 @@ import {
 	MessageMember,
 	PackageMember,
 } from "./package"
+import { dcterms, prov, ldp } from "./vocab"
 
 // Types for dayys
 type UriOrLiteral = ShExCore.Literal | string
@@ -30,18 +31,6 @@ type UriOrLiteralExpession = ShExCore.TripleConstraintSolutions<
 type LiteralOrEachOfSolutions = ShExCore.EachOfSolutions<
 	LiteralExpression | ShExCore.EachOfSolutions<UriOrLiteralExpession>
 >
-
-const membershipResource = "http://www.w3.org/ns/ldp#membershipResource"
-const hadMember = "http://www.w3.org/ns/prov#hadMember"
-const wasRevisionOf = "http://www.w3.org/ns/prov#wasRevisionOf"
-const provValue = "http://www.w3.org/ns/prov#value"
-const dctermsTitle = "http://purl.org/dc/terms/title"
-const dctermsSubject = "http://purl.org/dc/terms/subject"
-const dctermsDescription = "http://purl.org/dc/terms/description"
-const dctermsFormat = "http://purl.org/dc/terms/format"
-const dctermsExtent = "http://purl.org/dc/terms/extent"
-const dctermsCreated = "http://purl.org/dc/terms/created"
-const dctermsModified = "http://purl.org/dc/terms/modified"
 
 export function parseDataset(quads: string): Promise<Store> {
 	const store = new Store()
@@ -88,7 +77,8 @@ export function validatePackage(
 			solutions: [{ object: resource }],
 		} = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === membershipResource
+				type === "TripleConstraintSolutions" &&
+				predicate === ldp.membershipResource
 		) as UriExpression
 
 		// Get the title
@@ -100,13 +90,14 @@ export function validatePackage(
 			],
 		} = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === dctermsTitle
+				type === "TripleConstraintSolutions" && predicate === dcterms.title
 		) as LiteralExpression
 
 		// Get the description, if it exists
 		const { solutions: descriptionSolution } = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === dctermsDescription
+				type === "TripleConstraintSolutions" &&
+				predicate === dcterms.description
 		) as LiteralExpression
 		const description =
 			descriptionSolution.length === 1
@@ -116,7 +107,7 @@ export function validatePackage(
 		// Get the keywords, if they exist
 		const { solutions: subjectSolutions } = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === dctermsSubject
+				type === "TripleConstraintSolutions" && predicate === dcterms.subject
 		) as LiteralExpression
 
 		const keywords = subjectSolutions.map(({ object: { value } }) => value)
@@ -130,7 +121,7 @@ export function validatePackage(
 			],
 		} = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === dctermsCreated
+				type === "TripleConstraintSolutions" && predicate === dcterms.created
 		) as LiteralExpression
 
 		// Get the modified date
@@ -142,13 +133,13 @@ export function validatePackage(
 			],
 		} = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === dctermsModified
+				type === "TripleConstraintSolutions" && predicate === dcterms.modified
 		) as LiteralExpression
 
 		// Get the previous revision, if it exists
 		const { solutions: revisionSolutions } = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === wasRevisionOf
+				type === "TripleConstraintSolutions" && predicate === prov.wasRevisionOf
 		) as UriExpression
 		const revisionOf =
 			revisionSolutions.length === 1
@@ -165,7 +156,7 @@ export function validatePackage(
 			],
 		} = expressions.find(
 			({ type, predicate }) =>
-				type === "TripleConstraintSolutions" && predicate === provValue
+				type === "TripleConstraintSolutions" && predicate === prov.value
 		) as ShExCore.TripleConstraintSolutions<
 			ShExCore.TestedTriple<
 				string,
@@ -189,7 +180,7 @@ export function validatePackage(
 		const { solutions: packageSolutions } = expressions.find(
 			({ type, predicate, valueExpr }) =>
 				type === "TripleConstraintSolutions" &&
-				predicate === hadMember &&
+				predicate === prov.hadMember &&
 				valueExpr === "_:p"
 		) as ShExCore.TripleConstraintSolutions<
 			ShExCore.TestedTriple<
@@ -215,7 +206,7 @@ export function validatePackage(
 			const {
 				solutions: [{ object: resource }],
 			} = packageExpressions.find(
-				({ predicate }) => predicate === membershipResource
+				({ predicate }) => predicate === ldp.membershipResource
 			) as UriExpression
 
 			const {
@@ -225,7 +216,7 @@ export function validatePackage(
 					},
 				],
 			} = packageExpressions.find(
-				({ predicate }) => predicate === membershipResource
+				({ predicate }) => predicate === ldp.membershipResource
 			) as LiteralExpression
 
 			const member: PackageMember = {
@@ -241,7 +232,7 @@ export function validatePackage(
 		const { solutions: messageSolutions } = expressions.find(
 			({ type, predicate, valueExpr }) =>
 				type === "TripleConstraintSolutions" &&
-				predicate === hadMember &&
+				predicate === prov.hadMember &&
 				valueExpr === "_:m"
 		) as ShExCore.TripleConstraintSolutions<
 			ShExCore.TestedTriple<
@@ -275,7 +266,7 @@ export function validatePackage(
 			const {
 				solutions: [{ object: resource }],
 			} = resourceSolutions.find(
-				({ predicate }) => predicate === membershipResource
+				({ predicate }) => predicate === ldp.membershipResource
 			) as UriExpression
 
 			const {
@@ -285,7 +276,7 @@ export function validatePackage(
 					},
 				],
 			} = resourceSolutions.find(
-				({ predicate }) => predicate === dctermsTitle
+				({ predicate }) => predicate === dcterms.title
 			) as LiteralExpression
 
 			member.resource = parseURI(resource)
@@ -297,7 +288,7 @@ export function validatePackage(
 		const { solutions: fileSolutions } = expressions.find(
 			({ type, predicate, valueExpr }) =>
 				type === "TripleConstraintSolutions" &&
-				predicate === hadMember &&
+				predicate === prov.hadMember &&
 				valueExpr === "_:f"
 		) as ShExCore.TripleConstraintSolutions<
 			ShExCore.TestedTriple<
@@ -328,7 +319,7 @@ export function validatePackage(
 				],
 			} = expressions.find(node => {
 				if (node.type === "TripleConstraintSolutions") {
-					return node.predicate === dctermsExtent
+					return node.predicate === dcterms.extent
 				}
 			}) as LiteralExpression
 
@@ -341,7 +332,7 @@ export function validatePackage(
 				],
 			} = expressions.find(node => {
 				if (node.type === "TripleConstraintSolutions") {
-					return node.predicate === dctermsFormat
+					return node.predicate === dcterms.format
 				}
 			}) as LiteralExpression
 
@@ -366,7 +357,7 @@ export function validatePackage(
 				const {
 					solutions: [{ object: resource }],
 				} = optionalSolutions.find(
-					({ predicate }) => predicate === membershipResource
+					({ predicate }) => predicate === ldp.membershipResource
 				) as UriExpression
 				const {
 					solutions: [
@@ -375,7 +366,7 @@ export function validatePackage(
 						},
 					],
 				} = optionalSolutions.find(
-					({ predicate }) => predicate === dctermsTitle
+					({ predicate }) => predicate === dcterms.title
 				) as LiteralExpression
 
 				member.resource = parseURI(resource)

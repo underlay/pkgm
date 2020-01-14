@@ -1,6 +1,16 @@
 import { parse as parseURI, URIComponents } from "uri-js"
+import { Store, DataFactory } from "n3"
+import { Package, ResourceType, Member, FileMember } from "./package"
+
+import { dcterms, prov, ldp } from "./vocab"
 
 const linkHeader = /^<([:a-zA-Z0-9_\-\.\/#]+)>; rel=\"([a-z]+)\"$/
+
+const uriTypes: Map<ResourceType, RegExp> = new Map([
+	[ResourceType.File, /^dweb:\/ipfs\/[a-z2-7]{59}$/],
+	[ResourceType.Message, /^u:[a-z2-7]{59}$/],
+	[ResourceType.Package, /^u:[a-z2-7]{59}#_:c14n\d+$/],
+])
 
 export function parseLinkHeader(header: string): Map<string, URIComponents[]> {
 	const links = header.split(", ")
@@ -28,9 +38,51 @@ export function parseVersionURI(headers: Headers): URIComponents {
 	if (match !== null && links !== undefined && links.length === 1) {
 		const [{ fragment }] = links
 		const [_, path] = match
-		const uri: URIComponents = { scheme, path, fragment }
-		return uri
+		return { scheme, path, fragment }
 	} else {
 		return null
 	}
+}
+
+export function patchPackage(p: Package, store: Store, subject: string) {
+	const keyword = DataFactory.namedNode(dcterms.subject)
+	if (store.countQuads(null, keyword)) {
+		p.keywords = []
+	}
+
+	store.forEach(({ predicate: { value: property }, object: { value } }) => {
+		if (property === dcterms.modified) {
+			p.modified = new Date(value)
+		} else if (property === dcterms.description) {
+			p.description = value
+		} else if (property === dcterms.subject) {
+			p.keywords.push(value)
+		} else if (property === prov.wasRevisionOf) {
+			p.revisionOf = parseURI(value)
+		} else if (property === prov.hadMember) {
+			let member: Partial<Member> = null
+			for (const [t, r] of uriTypes) {
+				if (r.test(value)) {
+					member = { type: t, value: parseURI(value) }
+					break
+				}
+			}
+			if (member === null) {
+				console.error("Invalid resource type", value)
+			} else {
+				store.forEach(({ predicate: { value: p }, object: { value: v } }) => {
+					if (p === ldp.membershipResource) {
+						member.resource = parseURI(v)
+					} else if (p === dcterms.title) {
+						member.title = v
+					} else if (p === dcterms.format) {
+						;(member as Partial<FileMember>).format = v
+					} else if (p === dcterms.extent) {
+						;(member as Partial<FileMember>).extent = parseInt(v)
+					}
+				}, DataFactory.namedNode(value))
+				p.members.push(member as Member)
+			}
+		}
+	}, DataFactory.namedNode(subject))
 }

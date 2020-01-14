@@ -2,15 +2,15 @@ import * as React from "react"
 import {
 	Classes,
 	Button,
-	FileInput,
 	HTMLTable,
 	InputGroup,
 	AnchorButton,
 	ProgressBar,
 	Dialog,
+	Divider,
+	FormGroup,
+	FileInput,
 } from "@blueprintjs/core"
-
-import { DataFactory } from "n3"
 
 import {
 	parse as parseURI,
@@ -21,23 +21,18 @@ import {
 import { ResourceType, Package, Member, PackageSchema } from "./package"
 import URIView from "./uri"
 import { parseDataset, validatePackage } from "./parse"
-import { parseLinkHeader, parseVersionURI } from "./utils"
+import { parseVersionURI, patchPackage } from "./utils"
 
-const ldpResource = "http://www.w3.org/ns/ldp#Resource"
-const ldpDirectContainer = "http://www.w3.org/ns/ldp#DirectContainer"
-const ldpRDFSource = "http://www.w3.org/ns/ldp#RDFSource"
-const ldpNonRDFSource = "http://www.w3.org/ns/ldp#NonRDFSource"
+import { dcterms, ldp } from "./vocab"
 
 const resourceTypeMap: { [index: string]: ResourceType } = {
-	ldpDirectContainer: ResourceType.Package,
-	ldpRDFSource: ResourceType.Message,
-	ldpNonRDFSource: ResourceType.File,
+	[ldp.directContainer]: ResourceType.Package,
+	[ldp.rdfSource]: ResourceType.Message,
+	[ldp.nonRDFSource]: ResourceType.File,
 }
 
 interface PackageProps {
-	// p: Package
 	url: string
-	// uri: URIComponents
 }
 
 interface PackageState {
@@ -45,14 +40,11 @@ interface PackageState {
 	editDescriptionPending: boolean
 	p: Package
 	uri: URIComponents
+	error: any
 }
 
 const gatewayURL = parseURI("http://localhost:8080")
 const exploreURL = parseURI("http://localhost:8088")
-
-const descriptionIRI = "http://purl.org/dc/terms/description"
-const modifiedIRI = "http://purl.org/dc/terms/modified"
-const wasRevisionOfIRI = "http://www.w3.org/ns/prov#wasRevisionOf"
 
 export class PackageView extends React.Component<PackageProps, PackageState> {
 	constructor(props: PackageProps) {
@@ -62,64 +54,51 @@ export class PackageView extends React.Component<PackageProps, PackageState> {
 			editDescriptionPending: false,
 			p: null,
 			uri: null,
+			error: null,
 		}
 	}
-	async componentDidMount() {
-		const res = await fetch(this.props.url, {
+	componentDidMount() {
+		fetch(this.props.url, {
 			method: "GET",
 			headers: { Accept: "application/n-quads" },
 		})
-
-		const uri = parseVersionURI(res.headers)
-		if (uri !== null) {
-			const store = await res.text().then(parseDataset)
-			const p = validatePackage(await PackageSchema, store, uri.fragment)
-			this.setState({ p, uri })
-		}
+			.then(async res => {
+				const uri = parseVersionURI(res.headers)
+				if (uri !== null) {
+					const store = await res.text().then(parseDataset)
+					const p = validatePackage(await PackageSchema, store, uri.fragment)
+					this.setState({ p, uri })
+				}
+			})
+			.catch(err => this.setState({ error: err }))
 	}
 	handleEditDescription = () => this.setState({ editDescription: true })
 	handleCancelEditDescription = () => this.setState({ editDescription: false })
 	handleCommitEditDescription = async (description: string) => {
-		const { url } = this.props
 		const {
 			p,
 			uri: { path, fragment },
 		} = this.state
 		this.setState({ editDescriptionPending: true })
 		const object = JSON.stringify(description)
-		const res = await fetch(url, {
+		const res = await fetch(this.props.url, {
 			method: "PATCH",
 			headers: {
 				"Content-Type": "application/n-quads",
 				"If-Match": `"${path}"`,
 				Link: `<#${fragment}>; rel="self"`,
 			},
-			body: `${fragment} <${descriptionIRI}> ${object} .\n`,
+			body: `${fragment} <${dcterms.description}> ${object} .\n`,
 		})
 		const uri = parseVersionURI(res.headers)
 		if (res.status === 204) {
 			this.setState({ editDescriptionPending: false, editDescription: false })
 		} else if (res.status === 200 && uri !== null) {
 			const store = await res.text().then(parseDataset)
-			const [
-				{
-					object: { value: modified },
-				},
-			] = store.getQuads(null, DataFactory.namedNode(modifiedIRI), null, null)
-			const [
-				{
-					object: { value: revisionOf },
-				},
-			] = store.getQuads(
-				null,
-				DataFactory.namedNode(wasRevisionOfIRI),
-				null,
-				null
-			)
-			p.description = description
-			p.modified = new Date(modified)
-			p.revisionOf = parseURI(revisionOf)
+			console.log("response store!", store, uri.fragment)
+			patchPackage(p, store, uri.fragment)
 			this.setState({
+				p,
 				uri,
 				editDescriptionPending: false,
 				editDescription: false,
@@ -129,8 +108,17 @@ export class PackageView extends React.Component<PackageProps, PackageState> {
 		}
 	}
 	render() {
-		const { p, uri } = this.state
-		if (p === null) {
+		const { p, uri, error } = this.state
+		if (error !== null) {
+			return (
+				<React.Fragment>
+					<h6 className={Classes.HEADING}>Could not load package</h6>
+					<p>
+						<code>{error.toString()}</code>
+					</p>
+				</React.Fragment>
+			)
+		} else if (p === null) {
 			return <p>Loading...</p>
 		}
 		console.log(uri)
@@ -144,7 +132,7 @@ export class PackageView extends React.Component<PackageProps, PackageState> {
 					<tbody>
 						<tr>
 							{this.renderLabel("version")}
-							<td style={{ textAlign: "right" }}>
+							<td>
 								<URIView uri={uri} />
 								<AnchorButton
 									href={serializeURI({
@@ -162,7 +150,7 @@ export class PackageView extends React.Component<PackageProps, PackageState> {
 						</tr>
 						<tr>
 							{this.renderLabel("contents")}
-							<td style={{ textAlign: "right" }}>
+							<td>
 								<URIView uri={p.value} />
 								<div
 									style={{
@@ -196,52 +184,91 @@ export class PackageView extends React.Component<PackageProps, PackageState> {
 								{this.renderLabel("revision of")}
 								<td colSpan={3}>
 									<URIView uri={p.revisionOf} />
-								</td>
-							</tr>
-						)}
-						{p.keywords !== null && p.keywords.length > 0 && (
-							<tr>
-								{this.renderLabel("keywords")}
-								<td>keywords</td>
-								<td colSpan={3}>{p.keywords.join(", ")}</td>
-							</tr>
-						)}
-						{p.description !== null && (
-							<tr>
-								{this.renderLabel("description")}
-								<td colSpan={3} style={{ display: "flex" }}>
-									<div style={{ flex: 1, marginRight: "1em" }}>
-										{p.description}
-									</div>
-									<Button
-										icon="edit"
-										onClick={this.handleEditDescription}
-										small={true}
+									<AnchorButton
+										href={serializeURI({
+											...exploreURL,
+											query: p.revisionOf.path,
+											fragment: p.revisionOf.fragment,
+										})}
 										minimal={true}
-									/>
-									<EditDescription
-										isOpen={this.state.editDescription}
-										isPending={this.state.editDescriptionPending}
-										description={p.description}
-										onCancel={this.handleCancelEditDescription}
-										onChange={this.handleCommitEditDescription}
-									/>
+										small={true}
+										rightIcon="share"
+									>
+										open in explorer
+									</AnchorButton>
 								</td>
 							</tr>
 						)}
+						<tr>
+							{this.renderLabel("description")}
+							<td colSpan={3} style={{ display: "flex" }}>
+								<div style={{ flex: 1, marginRight: "1em" }}>
+									{p.description || <i>No description</i>}
+								</div>
+								<Button
+									className="edit"
+									icon="edit"
+									onClick={this.handleEditDescription}
+									small={true}
+									minimal={true}
+								/>
+								<EditDescription
+									isOpen={this.state.editDescription}
+									isPending={this.state.editDescriptionPending}
+									description={p.description || ""}
+									onCancel={this.handleCancelEditDescription}
+									onChange={this.handleCommitEditDescription}
+								/>
+							</td>
+						</tr>
 					</tbody>
 				</HTMLTable>
-				<FileInput disabled={true} text="Add file..." />
+				<Divider />
+				<section>
+					<h4 className={Classes.HEADING}>Add resources</h4>
+					<FileInput
+						inputProps={{ multiple: true }}
+						text="Upload files..."
+						buttonText="Browse"
+						onInputChange={(event: React.FormEvent<HTMLInputElement>) => {
+							const { files } = event.target as HTMLInputElement
+							const formData = new FormData()
+							for (const file of files) {
+								formData.append(file.name, file, file.name)
+							}
+
+							fetch(this.props.url, {
+								method: "POST",
+								body: formData,
+								headers: { "If-Match": `"${this.state.uri.path}"` },
+							})
+								.then(async res => {
+									if (res.status === 204) {
+									} else if (res.status === 200) {
+										const { p } = this.state
+										const uri = parseVersionURI(res.headers)
+										const store = await res.text().then(parseDataset)
+										patchPackage(p, store, uri.fragment)
+										this.setState({ p, uri })
+									} else {
+										console.error(res.status, res.statusText, await res.text())
+									}
+								})
+								.catch(err => console.error(err))
+						}}
+					/>
+				</section>
+				<Divider />
+				<section>
+					<h4 className={Classes.HEADING}>Contents</h4>
+					{p.members.map(this.renderMember)}
+				</section>
 			</React.Fragment>
 		)
 	}
 
 	renderLabel(label: string): JSX.Element {
-		return (
-			<td>
-				<div style={{ width: "max-content" }}>{label}</div>
-			</td>
-		)
+		return <td className="label">{label}</td>
 	}
 
 	renderDate(date: Date) {
@@ -256,21 +283,28 @@ export class PackageView extends React.Component<PackageProps, PackageState> {
 		return a.host === b.host && a.path === b.path + "/" + name
 	}
 
-	renderMember(member: Member): JSX.Element {
-		const { p } = this.state
-		switch (member.type) {
-			case ResourceType.Package:
-				const { title, resource } = member
-				const className = PackageView.testExternal(p.resource, resource, title)
-					? "external subpackage"
-					: "subpackage"
-				return <a className={className} href={title}></a>
-			case ResourceType.Message:
-				return null
-			case ResourceType.File:
-				return null
-			default:
-				return null
+	renderMember(member: Member, key: number): JSX.Element {
+		if (member.type === ResourceType.Package) {
+			const { title, resource, value } = member
+			const { p } = this.state
+			const className = PackageView.testExternal(p.resource, resource, title)
+				? "external subpackage"
+				: "subpackage"
+			const href = serializeURI({ ...gatewayURL, path: value.path })
+			const props = { key, className, href }
+			return <a {...props}>{title}</a>
+		} else if (member.type === ResourceType.Message) {
+		} else if (member.type === ResourceType.File) {
+			const { title, resource, value } = member
+			const href = serializeURI({ ...gatewayURL, path: value.path })
+			const props = { key, href }
+			return (
+				<AnchorButton minimal={true} icon="document" key={key} href={href}>
+					{title} - {member.extent} bytes - {member.format}
+				</AnchorButton>
+			)
+		} else {
+			return null
 		}
 	}
 }
