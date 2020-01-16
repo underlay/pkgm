@@ -1,71 +1,69 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="UTF-8" />
-		<title>pkgm</title>
-		<!-- Dependencies -->
-		<link href="node_modules/normalize.css/normalize.css" rel="stylesheet" />
-		<!-- blueprint-icons.css file must be included alongside blueprint.css! -->
-		<link
-			href="node_modules/@blueprintjs/icons/lib/css/blueprint-icons.css"
-			rel="stylesheet"
-		/>
-		<link
-			href="node_modules/@blueprintjs/core/lib/css/blueprint.css"
-			rel="stylesheet"
-		/>
-		<!-- add other blueprint-*.css files here -->
-		<script defer src="node_modules/react/umd/react.development.js"></script>
-		<script
-			defer
-			src="node_modules/react-dom/umd/react-dom.development.js"
-		></script>
 
-		<script defer src="lib/index.min.js"></script>
-		<style>
-			html {
-				background-color: white;
-			}
+<head>
+	<meta charset="UTF-8" />
+	<title>pkgm</title>
+	<!-- Dependencies -->
+	<link href="node_modules/normalize.css/normalize.css" rel="stylesheet" />
+	<!-- blueprint-icons.css file must be included alongside blueprint.css! -->
+	<link href="node_modules/@blueprintjs/icons/lib/css/blueprint-icons.css" rel="stylesheet" />
+	<link href="node_modules/@blueprintjs/core/lib/css/blueprint.css" rel="stylesheet" />
+	<!-- add other blueprint-*.css files here -->
+	<script defer src="node_modules/react/umd/react.development.js"></script>
+	<script defer src="node_modules/react-dom/umd/react-dom.development.js"></script>
 
-			main.package {
-				width: min-content;
-				margin: 2em auto;
-				min-width: 600px;
-			}
+	<script defer src="lib/index.min.js"></script>
+	<style>
+		html {
+			background-color: white;
+		}
 
-			main.package header {
-				padding: 1em 10px;
-			}
+		main.package {
+			width: min-content;
+			margin: 2em auto;
+			min-width: 600px;
+		}
 
-			main.package td:last-child {
-				text-align: right;
-			}
+		main.package header {
+			padding: 1em 10px;
+		}
 
-			td.label {
-				width: max-content;
-			}
+		main.package td:last-child {
+			text-align: right;
+		}
 
-			main.package td button.edit {
-				margin: -3px;
-				height: 24px;
-			}
+		td.label {
+			width: max-content;
+		}
 
-			td a[role="button"] {
-				margin-left: 3px;
-				margin-right: -7px;
-			}
+		main.package td button.edit {
+			margin: -3px;
+			height: 24px;
+		}
 
-			pre.uri {
-				margin: 0;
-				padding: 1px 0;
-			}
+		td a[role="button"] {
+			margin-left: 3px;
+			margin-right: -7px;
+		}
 
-			main.package section {
-				padding: 1em 10px;
-			}
-		</style>
-	</head>
-	<body>
-		<main class="package"></main>
-	</body>
+		pre.uri {
+			margin: 0;
+			padding: 1px 0;
+		}
+
+		main.package section {
+			padding: 1em 10px;
+		}
+
+		.new-package {
+			width: max-content;
+		}
+	</style>
+</head>
+
+<body>
+	<main class="package"></main>
+</body>
+
 </html>

@@ -1,8 +1,18 @@
 import { Store, StreamParser } from "n3"
 import { parse as parseURI } from "uri-js"
 
-import * as ShExParser from "@shex/parser"
-import * as ShExCore from "@shex/core"
+import { Schema } from "@shex/parser"
+import {
+	Util,
+	Validator,
+	Literal,
+	TripleConstraintSolutions,
+	TestedTriple,
+	NodeConstraint,
+	EachOfSolutions,
+	ShapeTest,
+	ShapeAndResults,
+} from "@shex/core"
 
 import {
 	Package,
@@ -11,25 +21,25 @@ import {
 	FileMember,
 	MessageMember,
 	PackageMember,
-} from "./package"
+} from "./interfaces"
 import { dcterms, prov, ldp } from "./vocab"
 
 // Types for dayys
-type UriOrLiteral = ShExCore.Literal | string
-type LiteralExpression = ShExCore.TripleConstraintSolutions<
-	ShExCore.TestedTriple<ShExCore.Literal, undefined>,
+type UriOrLiteral = Literal | string
+type LiteralExpression = TripleConstraintSolutions<
+	TestedTriple<Literal, undefined>,
 	undefined
 >
-type UriExpression = ShExCore.TripleConstraintSolutions<
-	ShExCore.TestedTriple<string, undefined>,
+type UriExpression = TripleConstraintSolutions<
+	TestedTriple<string, undefined>,
 	undefined
 >
-type UriOrLiteralExpession = ShExCore.TripleConstraintSolutions<
-	ShExCore.TestedTriple<UriOrLiteral, undefined>,
-	ShExCore.NodeConstraint
+type UriOrLiteralExpession = TripleConstraintSolutions<
+	TestedTriple<UriOrLiteral, undefined>,
+	NodeConstraint
 >
-type LiteralOrEachOfSolutions = ShExCore.EachOfSolutions<
-	LiteralExpression | ShExCore.EachOfSolutions<UriOrLiteralExpession>
+type LiteralOrEachOfSolutions = EachOfSolutions<
+	LiteralExpression | EachOfSolutions<UriOrLiteralExpession>
 >
 
 export function parseDataset(quads: string): Promise<Store> {
@@ -48,12 +58,12 @@ export function parseDataset(quads: string): Promise<Store> {
 }
 
 export function validatePackage(
-	schema: ShExParser.Schema,
+	schema: Schema,
 	store: Store,
 	fragment: string
 ): Package {
-	const db = ShExCore.Util.makeN3DB(store)
-	const validator = ShExCore.Validator.construct(schema)
+	const db = Util.makeN3DB(store)
+	const validator = Validator.construct(schema)
 
 	const result = validator.validate(db, fragment, schema.start)
 	if (result.type === "ShapeAndResults") {
@@ -61,14 +71,9 @@ export function validatePackage(
 			solution: {
 				solutions: [{ expressions }],
 			},
-		} = result.solutions.find(
-			({ type }) => type === "ShapeTest"
-		) as ShExCore.ShapeTest<
-			ShExCore.EachOfSolutions<
-				ShExCore.TripleConstraintSolutions<
-					ShExCore.TestedTriple<UriOrLiteral, undefined>,
-					string
-				>
+		} = result.solutions.find(({ type }) => type === "ShapeTest") as ShapeTest<
+			EachOfSolutions<
+				TripleConstraintSolutions<TestedTriple<UriOrLiteral, undefined>, string>
 			>
 		>
 
@@ -157,20 +162,17 @@ export function validatePackage(
 		} = expressions.find(
 			({ type, predicate }) =>
 				type === "TripleConstraintSolutions" && predicate === prov.value
-		) as ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<
-				string,
-				ShExCore.ShapeAndResults<LiteralExpression>
-			>,
+		) as TripleConstraintSolutions<
+			TestedTriple<string, ShapeAndResults<LiteralExpression>>,
 			undefined
 		>
 		const {
 			solution: {
 				solutions: [extentSolution],
 			},
-		} = valueSolutions.find(
-			({ type }) => type === "ShapeTest"
-		) as ShExCore.ShapeTest<LiteralExpression>
+		} = valueSolutions.find(({ type }) => type === "ShapeTest") as ShapeTest<
+			LiteralExpression
+		>
 		const {
 			object: { value: extent },
 		} = extentSolution
@@ -182,12 +184,10 @@ export function validatePackage(
 				type === "TripleConstraintSolutions" &&
 				predicate === prov.hadMember &&
 				valueExpr === "_:p"
-		) as ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<
+		) as TripleConstraintSolutions<
+			TestedTriple<
 				string,
-				ShExCore.ShapeAndResults<
-					ShExCore.EachOfSolutions<UriOrLiteralExpession>
-				>
+				ShapeAndResults<EachOfSolutions<UriOrLiteralExpession>>
 			>,
 			string
 		>
@@ -200,9 +200,9 @@ export function validatePackage(
 				solution: {
 					solutions: [{ expressions: packageExpressions }],
 				},
-			} = packageResults.find(
-				({ type }) => type === "ShapeTest"
-			) as ShExCore.ShapeTest<ShExCore.EachOfSolutions<UriOrLiteralExpession>>
+			} = packageResults.find(({ type }) => type === "ShapeTest") as ShapeTest<
+				EachOfSolutions<UriOrLiteralExpession>
+			>
 			const {
 				solutions: [{ object: resource }],
 			} = packageExpressions.find(
@@ -216,7 +216,7 @@ export function validatePackage(
 					},
 				],
 			} = packageExpressions.find(
-				({ predicate }) => predicate === ldp.membershipResource
+				({ predicate }) => predicate === dcterms.title
 			) as LiteralExpression
 
 			const member: PackageMember = {
@@ -234,12 +234,10 @@ export function validatePackage(
 				type === "TripleConstraintSolutions" &&
 				predicate === prov.hadMember &&
 				valueExpr === "_:m"
-		) as ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<
+		) as TripleConstraintSolutions<
+			TestedTriple<
 				string,
-				ShExCore.ShapeAndResults<
-					ShExCore.EachOfSolutions<UriOrLiteralExpession>
-				>
+				ShapeAndResults<EachOfSolutions<UriOrLiteralExpession>>
 			>,
 			string
 		>
@@ -259,9 +257,9 @@ export function validatePackage(
 				solution: {
 					solutions: [{ expressions: resourceSolutions }],
 				},
-			} = solutions.find(
-				({ type }) => type === "ShapeTest"
-			) as ShExCore.ShapeTest<ShExCore.EachOfSolutions<UriOrLiteralExpession>>
+			} = solutions.find(({ type }) => type === "ShapeTest") as ShapeTest<
+				EachOfSolutions<UriOrLiteralExpession>
+			>
 
 			const {
 				solutions: [{ object: resource }],
@@ -290,11 +288,8 @@ export function validatePackage(
 				type === "TripleConstraintSolutions" &&
 				predicate === prov.hadMember &&
 				valueExpr === "_:f"
-		) as ShExCore.TripleConstraintSolutions<
-			ShExCore.TestedTriple<
-				string,
-				ShExCore.ShapeAndResults<LiteralOrEachOfSolutions>
-			>,
+		) as TripleConstraintSolutions<
+			TestedTriple<string, ShapeAndResults<LiteralOrEachOfSolutions>>,
 			string
 		>
 
@@ -306,9 +301,9 @@ export function validatePackage(
 				solution: {
 					solutions: [{ expressions }],
 				},
-			} = solutions.find(
-				({ type }) => type === "ShapeTest"
-			) as ShExCore.ShapeTest<LiteralOrEachOfSolutions>
+			} = solutions.find(({ type }) => type === "ShapeTest") as ShapeTest<
+				LiteralOrEachOfSolutions
+			>
 
 			// Get file extent
 			const {
@@ -348,7 +343,7 @@ export function validatePackage(
 			// Get the file resource and title, if they exist
 			const optionalExpression = expressions.find(
 				({ type }) => type === "EachOfSolutions"
-			) as ShExCore.EachOfSolutions<UriOrLiteralExpession>
+			) as EachOfSolutions<UriOrLiteralExpession>
 
 			if (optionalExpression) {
 				const {

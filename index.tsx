@@ -1,29 +1,42 @@
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { PackageView } from "./src"
+import { PackageView } from "./src/components/package"
+import { uriPath } from "./src/utils"
 
 const main = document.querySelector("main")
 
-interface IndexState {
-	path: string
-}
-
 const origin = "http://localhost:8086"
 
-class Index extends React.Component<{}, IndexState> {
-	constructor(props: {}) {
-		super(props)
-		this.state = { path: "/" }
+class Index extends React.Component<{}, { path: string }> {
+	static parsePath(): string {
+		const hash = window.location.search.slice(1)
+		return uriPath.test(hash) ? hash : "/"
 	}
 
-	async componentDidMount() {
-		addEventListener("hashchange", () => {})
+	constructor(props: {}) {
+		super(props)
+		const path = Index.parsePath()
+		this.state = { path }
+		history.replaceState({ path }, path, `?${path}`)
+	}
+
+	componentDidMount() {
+		window.addEventListener("popstate", ({ state }) => this.setState(state))
+	}
+
+	handleChange = (path: string) => {
+		history.pushState({ path }, path, `?${path}`)
+		this.setState({ path })
 	}
 
 	render() {
-		const { path } = this.state
-		const url = origin + path
-		return <PackageView url={url} />
+		return (
+			<PackageView
+				origin={origin}
+				path={this.state.path}
+				onChange={this.handleChange}
+			/>
+		)
 	}
 }
 

@@ -1,16 +1,39 @@
-import { parse as parseURI, URIComponents } from "uri-js"
+import {
+	parse as parseURI,
+	URIComponents,
+	serialize as serializeURI,
+} from "uri-js"
 import { Store, DataFactory } from "n3"
-import { Package, ResourceType, Member, FileMember } from "./package"
-
+import { Schema, construct as constructShexParser } from "@shex/parser"
+import { Package, ResourceType, Member, FileMember } from "./interfaces"
 import { dcterms, prov, ldp } from "./vocab"
+import packageShexURL from "./package.shex"
+
+export const pathSegment = /^(?:[a-zA-Z0-9\-\._~!$'\(\)\*\+,;=:@%*]|(?:[A-F0-9]{2}))+$/
+export const uriPath = /^(\/(?:[a-zA-Z0-9\-\._~!$'\(\)\*\+,;=:@%*]|(?:[A-F0-9]{2}))+)+$/
+
+const gatewayURL = parseURI("http://localhost:8080")
+const exploreURL = parseURI("http://localhost:8088")
+
+export function makeGatewayURL(path: string): string {
+	return serializeURI({ ...gatewayURL, path })
+}
+
+export function makeExploreURL(path: string, fragment: string): string {
+	return serializeURI({ ...exploreURL, query: path, fragment })
+}
+
+export function parseSchema(shex: string): Schema {
+	const parser = constructShexParser()
+	const s: { start: string } = parser.parse(shex)
+	return s
+}
+
+export const PackageSchema = fetch(packageShexURL)
+	.then(res => res.text())
+	.then(parseSchema)
 
 const linkHeader = /^<([:a-zA-Z0-9_\-\.\/#]+)>; rel=\"([a-z]+)\"$/
-
-const uriTypes: Map<ResourceType, RegExp> = new Map([
-	[ResourceType.File, /^dweb:\/ipfs\/[a-z2-7]{59}$/],
-	[ResourceType.Message, /^u:[a-z2-7]{59}$/],
-	[ResourceType.Package, /^u:[a-z2-7]{59}#_:c14n\d+$/],
-])
 
 export function parseLinkHeader(header: string): Map<string, URIComponents[]> {
 	const links = header.split(", ")
@@ -43,6 +66,12 @@ export function parseVersionURI(headers: Headers): URIComponents {
 		return null
 	}
 }
+
+const uriTypes: Map<ResourceType, RegExp> = new Map([
+	[ResourceType.File, /^dweb:\/ipfs\/[a-z2-7]{59}$/],
+	[ResourceType.Message, /^u:[a-z2-7]{59}$/],
+	[ResourceType.Package, /^u:[a-z2-7]{59}#_:c14n\d+$/],
+])
 
 export function patchPackage(p: Package, store: Store, subject: string) {
 	const keyword = DataFactory.namedNode(dcterms.subject)

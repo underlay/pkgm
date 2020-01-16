@@ -1,7 +1,4 @@
-import * as ShExParser from "@shex/parser"
 import { URIComponents } from "uri-js"
-
-import packageShexURL from "./package.shex"
 
 export interface Package {
 	created: Date
@@ -48,13 +45,3 @@ export enum ResourceType {
 	Message,
 	File,
 }
-
-export function parseSchema(shex: string): ShExParser.Schema {
-	const parser = ShExParser.construct()
-	const s: { start: string } = parser.parse(shex)
-	return s
-}
-
-export const PackageSchema = fetch(packageShexURL)
-	.then(res => res.text())
-	.then(parseSchema)
