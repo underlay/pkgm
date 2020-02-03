@@ -1,4 +1,4 @@
-import { Store, StreamParser } from "n3"
+import { Store, StreamParser, N3Store, Quad, ParserOptions } from "n3"
 import { parse as parseURI } from "uri-js"
 
 import { Schema } from "@shex/parser"
@@ -42,16 +42,16 @@ type LiteralOrEachOfSolutions = EachOfSolutions<
 	LiteralExpression | EachOfSolutions<UriOrLiteralExpession>
 >
 
-export function parseDataset(quads: string): Promise<Store> {
+export function parseDataset(quads: string): Promise<N3Store> {
 	const store = new Store()
 	const n3Parser = new StreamParser({
 		format: "application/n-quads",
 		blankNodePrefix: "_:",
-	})
+	} as ParserOptions)
 
 	return new Promise((resolve, reject) => {
-		n3Parser.on("error", err => reject(err))
-		n3Parser.on("data", quad => store.addQuad(quad))
+		n3Parser.on("error", (err: Error) => reject(err))
+		n3Parser.on("data", (quad: Quad) => store.addQuad(quad))
 		n3Parser.on("end", () => resolve(store))
 		n3Parser.end(quads)
 	})
@@ -59,7 +59,7 @@ export function parseDataset(quads: string): Promise<Store> {
 
 export function validatePackage(
 	schema: Schema,
-	store: Store,
+	store: N3Store,
 	fragment: string
 ): Package {
 	const db = Util.makeN3DB(store)

@@ -27,7 +27,7 @@ import {
 } from "../utils"
 
 import { dcterms, ldp } from "../vocab"
-import MemberView from "./member"
+import MemberView, { icons } from "./member"
 import EditDescription from "./description"
 
 const resourceTypeMap: { [index: string]: ResourceType } = {
@@ -218,7 +218,7 @@ export class PackageView extends React.Component<PackageProps, PackageState> {
 			const path = terms.slice(0, index + 1).join("/")
 			const onClick = () => this.props.onChange(path)
 			if (text === "") {
-				return { onClick, icon: "archive" }
+				return { onClick, icon: icons.get(ResourceType.Package) }
 			} else {
 				return { onClick, text }
 			}

@@ -1,5 +1,3 @@
-/// <reference path="n3.d.ts" />
-
 declare module "*.shex"
 
 declare module "@shex/parser" {
@@ -15,10 +13,10 @@ declare module "@shex/parser" {
 }
 
 declare module "@shex/core" {
-	import * as N3 from "n3"
+	import { N3Store } from "n3"
 
 	var Util: {
-		makeN3DB(store: N3.Store): DB
+		makeN3DB(store: N3Store): DB
 	}
 
 	class Validator {
